@@ -9,7 +9,8 @@
 @class CalendarViewController;
 
 @protocol CalendarViewControllerDelegate
-
 - (void)calendarViewController:(CalendarViewController *)aCalendarViewController dateDidChange:(NSDate *)aDate;
 
+@optional
+- (void)showSelectedDateRangeStartDate:(NSDate *)startDate endDate:(NSDate *)endDate;
 @end

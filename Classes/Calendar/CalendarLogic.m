@@ -181,6 +181,72 @@
 	
 	return distance;
 }
+- (NSInteger)indexOfLastDateInCurrentMonth:(NSDate *)aDate
+{
+	NSCalendar *calendar = [NSCalendar currentCalendar];
+
+    NSDateComponents *monthComponents = [calendar components:(NSMonthCalendarUnit | NSYearCalendarUnit) fromDate:aDate];
+    [monthComponents setDay:[calendar rangeOfUnit:NSDayCalendarUnit
+                                           inUnit:NSMonthCalendarUnit
+                                          forDate:referenceDate].length];
+    NSDate *lastDayInMonth = [calendar dateFromComponents:monthComponents];
+
+	// Split
+	NSDateComponents *components = [calendar components:NSWeekdayCalendarUnit | NSMonthCalendarUnit |NSWeekCalendarUnit | NSYearCalendarUnit fromDate:lastDayInMonth];
+
+    
+	
+	// Select this month in this year.
+	NSDateComponents *firstDayComponents = [[[NSDateComponents alloc] init] autorelease];
+	[firstDayComponents setMonth:[components month]];
+	[firstDayComponents setYear:[components year]];
+	NSDate *firstDayDate = [calendar dateFromComponents:firstDayComponents];
+	
+	// Turn into week of a year.
+	NSDateComponents *firstWeekComponents = [calendar components:NSWeekCalendarUnit fromDate:firstDayDate];
+	NSInteger firstWeek = [firstWeekComponents week];
+	if (firstWeek > [components week]) {
+		firstWeek = firstWeek - 52;
+	}
+	NSInteger weekday = [components weekday];
+	if (weekday < (NSInteger)[calendar firstWeekday]) {
+		weekday = weekday + 7;
+	}
+	
+	return (weekday + (([components week] - firstWeek) * 7)) - [calendar firstWeekday];
+}
+
+- (NSInteger)indexOfFirstDateInCurrentMonth:(NSDate *)aDate
+{
+	NSCalendar *calendar = [NSCalendar currentCalendar];
+    
+	NSDateComponents *monthComponents = [calendar components:(NSMonthCalendarUnit | NSYearCalendarUnit) fromDate:aDate];
+	NSDate *firstDayInMonth = [calendar dateFromComponents:monthComponents];
+    
+	// Split
+	NSDateComponents *components = [calendar components:NSWeekdayCalendarUnit | NSMonthCalendarUnit |NSWeekCalendarUnit | NSYearCalendarUnit fromDate:firstDayInMonth];
+    
+    
+	
+	// Select this month in this year.
+	NSDateComponents *firstDayComponents = [[[NSDateComponents alloc] init] autorelease];
+	[firstDayComponents setMonth:[components month]];
+	[firstDayComponents setYear:[components year]];
+	NSDate *firstDayDate = [calendar dateFromComponents:firstDayComponents];
+	
+	// Turn into week of a year.
+	NSDateComponents *firstWeekComponents = [calendar components:NSWeekCalendarUnit fromDate:firstDayDate];
+	NSInteger firstWeek = [firstWeekComponents week];
+	if (firstWeek > [components week]) {
+		firstWeek = firstWeek - 52;
+	}
+	NSInteger weekday = [components weekday];
+	if (weekday < (NSInteger)[calendar firstWeekday]) {
+		weekday = weekday + 7;
+	}
+	
+	return (weekday + (([components week] - firstWeek) * 7)) - [calendar firstWeekday];
+}
 
 - (void)selectPreviousMonth {
 	NSCalendar *calendar = [NSCalendar currentCalendar];
@@ -201,6 +267,33 @@
 	[referenceDate autorelease];
 	referenceDate = [[calendar dateByAddingComponents:components toDate:referenceDate options:0] retain];
 	[calendarLogicDelegate calendarLogic:self monthChangeDirection:1];
+}
+
+- (BOOL)isDateHighlighted:(NSDate *)date
+{
+    for (NSDate *highlightedDate in _extraHighlightedDates) {
+        if ([date timeIntervalSince1970] == [highlightedDate timeIntervalSince1970]) {
+            return YES;
+        }
+    }
+    
+    return NO;
+}
+
+- (BOOL)isDateDisabled:(NSDate *)date
+{
+    if ((_minimumDate && [date timeIntervalSince1970] < [_minimumDate timeIntervalSince1970]) ||
+        (_maximumDate && [date timeIntervalSince1970] > [_maximumDate timeIntervalSince1970])) {
+        return YES;
+    }
+    
+    for (NSDate *disabledDate in _extraDisabledDates) {
+        if ([date timeIntervalSince1970] == [disabledDate timeIntervalSince1970]) {
+            return YES;
+        }
+    }
+    
+    return NO;
 }
 
 

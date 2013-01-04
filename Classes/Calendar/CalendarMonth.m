@@ -26,8 +26,6 @@
 @synthesize buttonsIndex;
 
 @synthesize numberOfDaysInWeek;
-@synthesize selectedButton;
-@synthesize selectedDate;
 
 
 
@@ -35,10 +33,9 @@
 #pragma mark Memory management
 
 - (void)dealloc {
-	self.calendarLogic = nil;
+	calendarLogic = nil;
 	self.datesIndex = nil;
 	self.buttonsIndex = nil;
-	self.selectedDate = nil;
 	
     [super dealloc];
 }
@@ -55,7 +52,6 @@
 	NSInteger numberOfWeeks = 5;
 	frame.size.width = 320;
 	frame.size.height = ((numberOfWeeks + 1) * kCalendarDayHeight) + 60;
-	selectedButton = -1;
 	
 	NSCalendar *calendar = [NSCalendar currentCalendar];
 	NSDateComponents *components = [calendar components:(NSDayCalendarUnit | NSMonthCalendarUnit | NSYearCalendarUnit) fromDate:[NSDate date]];	
@@ -166,16 +162,59 @@
 				[dayButton setTitleColor:[UIColor whiteColor] forState:UIControlStateSelected];
 				[dayButton setTitleShadowColor:[UIColor grayColor] forState:UIControlStateSelected];
 				
-				if ([dayDate compare:todayDate] != NSOrderedSame) {
-					// Normal
-					[dayButton setTitleColor:titleColor forState:UIControlStateNormal];
-					[dayButton setTitleShadowColor:[UIColor whiteColor] forState:UIControlStateNormal];
-					[dayButton setBackgroundImage:[UIImage imageNamed:@"CalendarDayTile.png"] forState:UIControlStateNormal];
-					
-					// Selected
-					[dayButton setBackgroundImage:[UIImage imageNamed:@"CalendarDaySelected.png"] forState:UIControlStateSelected];
-					
-				} else {
+                // Disabled
+                [dayButton setTitleColor:[[UIColor colorWithPatternImage:[UIImage imageNamed:@"CalendarTitleDimColor.png"]] colorWithAlphaComponent:0.5]
+                                forState:UIControlStateDisabled];
+                [dayButton setTitleShadowColor:[UIColor whiteColor] forState:UIControlStateDisabled];
+                
+                if ([aLogic isDateDisabled:dayDate]) {
+                    [dayButton setEnabled:NO];
+                }
+                else if ([aLogic.selectedDate timeIntervalSince1970] == [dayDate timeIntervalSince1970]) {
+                    [dayButton setSelected:YES];
+                    
+                    CGRect selectedFrame = dayButton.frame;
+                    if ([dayDate compare:todayDate] != NSOrderedSame) {
+                        selectedFrame.origin.y = selectedFrame.origin.y - 1;
+                        selectedFrame.size.width = kCalendarDayWidth + 1;
+                        selectedFrame.size.height = kCalendarDayHeight + 1;
+                    }
+                    
+                    dayButton.selected = YES;
+                    dayButton.frame = selectedFrame;
+                    [self bringSubviewToFront:dayButton];
+                }
+                if ([aLogic isDateHighlighted:dayDate]) {
+                    if ([dayButton isEnabled]) {
+                        [dayButton setBackgroundColor:[UIColor colorWithRed:0.0f green:0.0f blue:0.0f alpha:0.1]];
+                    }
+                    else {
+                        [dayButton setBackgroundColor:[UIColor colorWithRed:0.0f green:0.0f blue:0.0f alpha:0.05]];
+                    }
+                }
+                if (aLogic.rangeButtonDates) {
+                    for (NSDate *date in aLogic.rangeButtonDates) {
+                        if ([date timeIntervalSince1970] == [dayDate timeIntervalSince1970]) {
+                            if ([aLogic isDateHighlighted:dayDate]) {
+                                [dayButton setBackgroundColor:[UIColor colorWithRed:90.0f/255.0f green:161.0f/255.0f blue:237.0f/255.0f alpha:0.6]];
+                            }
+                            else {
+                                [dayButton setBackgroundColor:[UIColor colorWithRed:90.0f/255.0f green:161.0f/255.0f blue:237.0f/255.0f alpha:0.4]];
+                            }
+                        }
+                    }
+                }
+				
+                if ([dayDate compare:todayDate] != NSOrderedSame) {
+                    // Normal
+                    [dayButton setTitleColor:titleColor forState:UIControlStateNormal];
+                    [dayButton setTitleShadowColor:[UIColor whiteColor] forState:UIControlStateNormal];
+                    [dayButton setBackgroundImage:[UIImage imageNamed:@"CalendarDayTile.png"] forState:UIControlStateNormal];
+                    
+                    // Selected
+                    [dayButton setBackgroundImage:[UIImage imageNamed:@"CalendarDaySelected.png"] forState:UIControlStateSelected];
+				}
+                else {
 					// Normal
 					[dayButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
 					[dayButton setTitleShadowColor:[UIColor grayColor] forState:UIControlStateNormal];
@@ -196,7 +235,7 @@
 		}
 		
 		// save
-		self.calendarLogic = aLogic;
+		calendarLogic = aLogic;
 		self.datesIndex = [[aDatesIndex copy] autorelease];
 		self.buttonsIndex = [[aButtonsIndex copy] autorelease];
     }
@@ -212,43 +251,146 @@
 	[calendarLogic setReferenceDate:[datesIndex objectAtIndex:[sender tag]]];
 }
 - (void)selectButtonForDate:(NSDate *)aDate {
-	if (selectedButton >= 0) {
-		NSDate *todayDate = [CalendarLogic dateForToday];
-		UIButton *button = [buttonsIndex objectAtIndex:selectedButton];
-		
-		CGRect selectedFrame = button.frame;
-		if ([selectedDate compare:todayDate] != NSOrderedSame) {
-			selectedFrame.origin.y = selectedFrame.origin.y + 1;
-			selectedFrame.size.width = kCalendarDayWidth;
-			selectedFrame.size.height = kCalendarDayHeight;
-		}
-		
-		button.selected = NO;
-		button.frame = selectedFrame;
-		
-		self.selectedButton = -1;
-		self.selectedDate = nil;
-	}
-	
+    
+    if (calendarLogic.selectedDate) {
+            
+        NSInteger selectedButtonIndex;
+        
+        NSInteger monthOffset = [calendarLogic distanceOfDateFromCurrentMonth:calendarLogic.selectedDate];
+        
+        if (monthOffset > 0) {
+            NSInteger lastDayIndex = [calendarLogic indexOfLastDateInCurrentMonth:aDate];
+            selectedButtonIndex = lastDayIndex + monthOffset;
+        }
+        else if (monthOffset < 0) {
+            NSInteger firstDayIndex = [calendarLogic indexOfFirstDateInCurrentMonth:aDate];
+            selectedButtonIndex = firstDayIndex + monthOffset;
+        }
+        else {
+            selectedButtonIndex = [calendarLogic indexOfCalendarDate:calendarLogic.selectedDate];
+        }
+        
+        if (selectedButtonIndex >= 0 && selectedButtonIndex < [buttonsIndex count]) {
+            
+            NSDate *todayDate = [CalendarLogic dateForToday];
+            UIButton *button = [buttonsIndex objectAtIndex:selectedButtonIndex];
+            
+            CGRect selectedFrame = button.frame;
+            if ([calendarLogic.selectedDate compare:todayDate] != NSOrderedSame) {
+                selectedFrame.origin.y = selectedFrame.origin.y + 1;
+                selectedFrame.size.width = kCalendarDayWidth;
+                selectedFrame.size.height = kCalendarDayHeight;
+            }
+            
+            button.selected = NO;
+            button.frame = selectedFrame;
+        }
+        
+        calendarLogic.selectedDate = nil;
+    }
+    
 	if (aDate != nil) {
 		// Save
-		self.selectedButton = [calendarLogic indexOfCalendarDate:aDate];
-		self.selectedDate = aDate;
+		calendarLogic.selectedDate = aDate;
 		
-		NSDate *todayDate = [CalendarLogic dateForToday];
-		UIButton *button = [buttonsIndex objectAtIndex:selectedButton];
-		
-		CGRect selectedFrame = button.frame;
-		if ([aDate compare:todayDate] != NSOrderedSame) {
-			selectedFrame.origin.y = selectedFrame.origin.y - 1;
-			selectedFrame.size.width = kCalendarDayWidth + 1;
-			selectedFrame.size.height = kCalendarDayHeight + 1;
-		}
-		
-		button.selected = YES;
-		button.frame = selectedFrame;
-		[self bringSubviewToFront:button];	
+        NSInteger selectedButtonIndex;
+        
+        NSInteger monthOffset = [calendarLogic distanceOfDateFromCurrentMonth:calendarLogic.selectedDate];
+        if (monthOffset > 0) {
+            NSInteger lastDayIndex = [calendarLogic indexOfLastDateInCurrentMonth:calendarLogic.referenceDate];
+            selectedButtonIndex = lastDayIndex + monthOffset;
+        }
+        else {
+            selectedButtonIndex = [calendarLogic indexOfCalendarDate:calendarLogic.selectedDate];
+        }
+        
+        if (selectedButtonIndex >= 0 && selectedButtonIndex < [buttonsIndex count]) {
+            UIButton *button = [buttonsIndex objectAtIndex:selectedButtonIndex];
+            
+            NSDate *todayDate = [CalendarLogic dateForToday];
+            CGRect selectedFrame = button.frame;
+            if ([aDate compare:todayDate] != NSOrderedSame) {
+                selectedFrame.origin.y = selectedFrame.origin.y - 1;
+                selectedFrame.size.width = kCalendarDayWidth + 1;
+                selectedFrame.size.height = kCalendarDayHeight + 1;
+            }
+            
+            button.selected = YES;
+            button.frame = selectedFrame;
+            [self bringSubviewToFront:button];
+        }
 	}
+}
+- (void)selectButtonsInRangeStartDate:(NSDate *)startDate endDate:(NSDate *)endDate
+{
+    if (calendarLogic.rangeButtonDates) {
+        
+        //deselect all selected
+        for (NSDate *rangeButtonDate in calendarLogic.rangeButtonDates) {
+            
+            NSInteger rangeButtonIndex;
+            
+            NSInteger monthOffset = [calendarLogic distanceOfDateFromCurrentMonth:rangeButtonDate];
+            if (monthOffset < 0) {
+                NSInteger firstDayIndex = [calendarLogic indexOfFirstDateInCurrentMonth:calendarLogic.referenceDate];
+                rangeButtonIndex = firstDayIndex + monthOffset;
+            }
+            else if (monthOffset > 0) {
+                NSInteger lastDayIndex = [calendarLogic indexOfLastDateInCurrentMonth:calendarLogic.referenceDate];
+                rangeButtonIndex = lastDayIndex + monthOffset;
+            }
+            else {
+                rangeButtonIndex = [calendarLogic indexOfCalendarDate:rangeButtonDate];
+            }
+            
+            if (rangeButtonIndex >= 0 && rangeButtonIndex < [buttonsIndex count]) {
+                UIButton *button = [buttonsIndex objectAtIndex:rangeButtonIndex];
+                
+                if ([calendarLogic isDateHighlighted:rangeButtonDate]) {
+                    [button setBackgroundColor:[UIColor colorWithRed:0.0f green:0.0f blue:0.0f alpha:0.2]];
+                }
+                else {
+                    [button setBackgroundColor:[UIColor clearColor]];
+                }
+            }
+        }
+        
+        calendarLogic.rangeButtonDates = nil;
+    }
+    
+    NSMutableArray *rangeButtonDates = [NSMutableArray new];
+    
+    NSDate *currentDate = startDate;
+    while ([currentDate timeIntervalSince1970] < [endDate timeIntervalSince1970]) {
+        
+        NSInteger rangeButtonIndex;
+        
+        NSInteger monthOffset = [calendarLogic distanceOfDateFromCurrentMonth:currentDate];
+        if (monthOffset < 0) {
+            NSInteger firstDayIndex = [calendarLogic indexOfFirstDateInCurrentMonth:calendarLogic.referenceDate];
+            rangeButtonIndex = firstDayIndex + monthOffset;
+        }
+        else {
+            rangeButtonIndex = [calendarLogic indexOfCalendarDate:currentDate];
+        }
+        
+        if (rangeButtonIndex >= 0 && rangeButtonIndex < [buttonsIndex count]) {
+            UIButton *button = [buttonsIndex objectAtIndex:rangeButtonIndex];
+            
+            if ([calendarLogic isDateHighlighted:currentDate]) {
+                [button setBackgroundColor:[UIColor colorWithRed:90.0f/255.0f green:161.0f/255.0f blue:237.0f/255.0f alpha:0.6]];
+            }
+            else {
+                [button setBackgroundColor:[UIColor colorWithRed:90.0f/255.0f green:161.0f/255.0f blue:237.0f/255.0f alpha:0.4]];
+            }
+        }
+        
+        [rangeButtonDates addObject:currentDate];
+        
+        currentDate = [currentDate dateByAddingTimeInterval:60*60*24]; //add 1 day
+    }
+    
+    calendarLogic.rangeButtonDates = rangeButtonDates;
 }
 
 

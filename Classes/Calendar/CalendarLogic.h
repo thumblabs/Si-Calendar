@@ -17,6 +17,13 @@
 
 @property (nonatomic, assign) id <CalendarLogicDelegate> calendarLogicDelegate;
 @property (nonatomic, retain) NSDate *referenceDate;
+@property (nonatomic, retain) NSDate *selectedDate;
+
+@property (nonatomic, retain) NSDate *minimumDate;
+@property (nonatomic, retain) NSDate *maximumDate;
+@property (nonatomic, retain) NSArray *extraHighlightedDates;
+@property (nonatomic, retain) NSArray *extraDisabledDates;
+@property (nonatomic, retain) NSArray *rangeButtonDates;
 
 - (id)initWithDelegate:(id <CalendarLogicDelegate>)aDelegate referenceDate:(NSDate *)aDate;
 
@@ -32,5 +39,10 @@
 
 - (void)selectPreviousMonth;
 - (void)selectNextMonth;
+
+- (NSInteger)indexOfLastDateInCurrentMonth:(NSDate *)aDate;
+- (NSInteger)indexOfFirstDateInCurrentMonth:(NSDate *)aDate;
+- (BOOL)isDateHighlighted:(NSDate *)date;
+- (BOOL)isDateDisabled:(NSDate *)date;
 
 @end

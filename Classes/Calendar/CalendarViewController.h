@@ -36,7 +36,13 @@
 @property (nonatomic, retain) UIButton *leftButton;
 @property (nonatomic, retain) UIButton *rightButton;
 
+@property (nonatomic, retain) NSDate *minimumDate;
+@property (nonatomic, retain) NSDate *maximumDate;
+@property (nonatomic, retain) NSArray *extraHighlightedDates;
+@property (nonatomic, retain) NSArray *extraDisabledDates;
+
 - (void)animationMonthSlideComplete;
+- (void)showSelectedDateRangeStartDate:(NSDate *)startDate endDate:(NSDate *)endDate;
 
 @end
 

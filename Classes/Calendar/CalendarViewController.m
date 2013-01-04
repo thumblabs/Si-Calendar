@@ -89,10 +89,17 @@
 	}
 	
 	CalendarLogic *aCalendarLogic = [[CalendarLogic alloc] initWithDelegate:self referenceDate:aDate];
+    aCalendarLogic.minimumDate = _minimumDate;
+    aCalendarLogic.maximumDate = _maximumDate;
+    aCalendarLogic.extraHighlightedDates = _extraHighlightedDates;
+    aCalendarLogic.extraDisabledDates = _extraDisabledDates;
+    
 	self.calendarLogic = aCalendarLogic;
 	[aCalendarLogic release];
-	
-	UIBarButtonItem *aClearButton = [[UIBarButtonItem alloc] 
+    
+    
+    
+	UIBarButtonItem *aClearButton = [[UIBarButtonItem alloc]
 									 initWithTitle:NSLocalizedString(@"Clear", @"") style:UIBarButtonItemStylePlain
 									 target:self action:@selector(actionClearDate:)];
 	self.navigationItem.rightBarButtonItem = aClearButton;
@@ -149,7 +156,10 @@
     return [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad || interfaceOrientation == UIInterfaceOrientationPortrait;
 }
 
-
+- (void)showSelectedDateRangeStartDate:(NSDate *)startDate endDate:(NSDate *)endDate
+{
+	[calendarView selectButtonsInRangeStartDate:startDate endDate:endDate];
+}
 
 #pragma mark -
 #pragma mark UI events
